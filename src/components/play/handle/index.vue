@@ -23,12 +23,12 @@ const handleError = (message: string, option: NotifyOptions = {}) =>
 const ptzCamera = async (command: string) => {
   const { deviceId, channelId } = props.device;
   if (!deviceId || !channelId) {
-    handleError("请选择视频源", { duration: 800 });
+    handleError("请选择摄像头", { duration: 800 });
     return;
   }
 
   if (!channelOk?.value) {
-    handleError("无法移动,摄像机通道未联通！");
+    handleError("无法移动,摄像机通道未连通！");
     return;
   }
 

@@ -116,7 +116,7 @@ const createPlayer = async () => {
   Service.abortFetch();
   const { deviceId, channelId } = props.device;
   if (!deviceId || !channelId) {
-    handleError("请选择视频源");
+    handleError("请选择摄像头");
     return;
   }
 
@@ -198,7 +198,7 @@ const createPlayer = async () => {
     console.log(
       `视频卡顿被触发了【loading:${loading.value}】【error: ${videoError.value}】`
     );
-    handleVideoError("监控无法播放[stuck]!");
+    handleVideoError("[stuck]加载中...!");
   };
 
   flv.onError = (err) => {
@@ -220,6 +220,7 @@ const createPlayer = async () => {
 
   playerInstance.on(flvjs.Events.LOADING_COMPLETE, (_res) => {
     console.log("video LOADING_COMPLETE");
+    handleVideoError("视频流接收结束");
   });
 };
 
@@ -251,7 +252,7 @@ const reCreatePlayer = () => createPlayer();
         <span class="errorMsg">{{ videoErrorMsg || "视频连接中..." }}</span>
       </template>
     </div>
-    <div class="video-instance" v-show="!videoError && !loading">
+    <div class="video-instance">
       <video
         id="video"
         autoplay

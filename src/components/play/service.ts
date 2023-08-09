@@ -50,7 +50,7 @@ const Service: Service = {
         const { flv: address, tracks } = response.data;
         return { error: false, address, tracks };
       } else {
-        throw Error(response.msg || "视频源推流失败");
+        throw Error(response.msg || "流地址获取失败");
       }
     } catch (e: any) {
       // 获取点播地址异常

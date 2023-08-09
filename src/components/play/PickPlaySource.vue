@@ -113,7 +113,7 @@ const pickDeviceChannel = ({
 
   if (!deviceStatus) {
     activeId.value = "";
-    handleError("设备不在线,请耐心等待！");
+    handleError("摄像头离线,请检查网络！");
     return;
   }
 
@@ -125,7 +125,7 @@ const pickDeviceChannel = ({
 const pickerText = computed(() => {
   const isSelect = Boolean(activeId.value);
 
-  return `${isSelect ? "切换" : "选择"}视频源${
+  return `${isSelect ? "切换" : "选择"}摄像头${
     isSelect ? "【" + activeId.value + "】" : ""
   }`;
 });
