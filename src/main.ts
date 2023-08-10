@@ -10,6 +10,8 @@ import App from './App.vue'
 import './style.scss'
 import { showNotify } from 'vant';
 
+import pinia from './store';
+
 const app = createApp(App)
 
 app.config.errorHandler = (err) => {
@@ -20,4 +22,4 @@ app.config.errorHandler = (err) => {
   }
 };
 
-app.mount('#app')
+app.use(pinia).mount('#app')

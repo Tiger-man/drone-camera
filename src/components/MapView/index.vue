@@ -1,13 +1,10 @@
-<script lang="ts">
-import { getDeviceList } from "@/api";
+<script lang="ts" setup>
 import { Device } from "../play";
 import PlayInstance from "../play/PlayInstance.vue";
 import * as AMapLoader from "@amap/amap-jsapi-loader";
 import { shallowRef } from "@vue/reactivity";
 import { showNotify } from "vant";
-import { defineComponent, provide, ref } from "vue";
-
-import flvjs from "mpegts.js";
+import { nextTick, onMounted, provide, ref, toRefs, watch } from "vue";
 
 const defaultLngLatList = [
   [119.45755, 25.173419],
@@ -22,135 +19,115 @@ const defaultLngLatList = [
   [119.496399, 25.165308],
 ];
 
-type Handle = NodeJS.Timeout | null;
+import { useDeviceListStore } from "../../store";
 
-let handle: Handle = null;
+const mapInstance = shallowRef<AMap.Map | null>(null);
 
-export default defineComponent({
-  name: "MapView",
-  components: { PlayInstance },
-  setup() {
-    const map = shallowRef<AMap.Map | null>(null);
-    const playerInstance = ref<typeof PlayInstance | null>(null);
-    const device = ref<Device>({ deviceId: "" });
-    const show = ref<boolean>(false);
+const playerInstance = ref<typeof PlayInstance | null>(null);
+const device = ref<Device>({ deviceId: "" });
+const show = ref<boolean>(false);
 
-    const isSupported = flvjs.isSupported();
+const channelId = ref<string>("");
+const setChannelId = (chanId: string) => {
+  channelId.value = chanId;
+};
 
-    const channelId = ref<string>("");
-    const setChannelId = (chanId: string) => {
-      channelId.value = chanId;
+provide("setChannelId", setChannelId);
+provide("channelId", channelId);
+
+const deviceListStore = useDeviceListStore();
+const { deviceList } = toRefs(deviceListStore);
+
+const initMap = async () => {
+  const loaderOPtion = {
+    key: "0b856d5ac5313df7326dc999b8cc1afc",
+    version: "2.0",
+    plugins: [""],
+  };
+  try {
+    const AMap = await AMapLoader.load(loaderOPtion);
+    const mapOption: AMap.MapOptions = {
+      viewMode: "3D",
+      // pitch: 83,
+      // terrain: true,
+      zoom: 11.59,
+      center: [119.503492, 25.200333], //初始化地图中心点位置
     };
+    mapInstance.value = new AMap.Map("map-container", mapOption);
+    mapListener();
+    setMarker();
+  } catch (error) {}
+};
 
-    provide("setChannelId", setChannelId);
-    provide("channelId", channelId);
+const mapListener = () => {
+  if (!mapInstance.value) return;
+  mapInstance.value.on("click", (ev: any) => {
+    const {
+      lnglat: { lng, lat },
+    } = ev;
+    console.log("点击的ev:", ev);
+    console.log("点击的经纬度是:", `${lng}, ${lat}`);
+    const zoom = mapInstance.value?.getZoom();
+    console.log("当前地图缩放等级为:", zoom);
+  });
+};
 
-    return {
-      map,
-      device,
-      show,
-      playerInstance,
-      isSupported,
-    };
-  },
-  mounted() {
-    this.initMap();
-  },
-  unmounted() {
-    this.map && this.map.destroy();
-    handle && clearTimeout(handle);
-    handle = null;
-  },
-  methods: {
-    async initMap() {
-      const loaderOPtion = {
-        key: "0b856d5ac5313df7326dc999b8cc1afc",
-        version: "2.0",
-        plugins: [""],
-      };
-      try {
-        const AMap = await AMapLoader.load(loaderOPtion);
-        const mapOption: AMap.MapOptions = {
-          viewMode: "3D",
-          // pitch: 83,
-          // terrain: true,
-          zoom: 11.59,
-          center: [119.503492, 25.200333], //初始化地图中心点位置
-        };
-        this.map = new AMap.Map("map-container", mapOption);
-        this.mapListener();
-        this.getDeviceList();
-      } catch (error) {}
-    },
-    mapListener() {
-      const map = this.map;
-      if (!map) return;
-      map.on("click", (ev: any) => {
-        const {
-          lnglat: { lng, lat },
-        } = ev;
-        console.log("点击的ev:", ev);
-        console.log("点击的经纬度是:", `${lng}, ${lat}`);
-        const zoom = map.getZoom();
-        console.log("当前地图缩放等级为:", zoom);
-      });
-    },
-    async getDeviceList() {
-      const response = await getDeviceList().request();
-      if (response.code === 0) {
-        const list = response.data.list as Record<string, any>[];
-        this.setMarker(list);
+const setMarker = () => {
+  const map = mapInstance.value;
+  if (!map) return;
+  const addMarker = (device: Record<string, any>, index: number) => {
+    const icon = new AMap.Icon({
+      size: new AMap.Size(40, 50),
+      image:
+        "https://gaoguantong.ruitong369.com/GaoGuanTongServer/gaoguantongHTML/img/direction/gaoguantong/map/camera" +
+        (device.online ? "" : "_error") +
+        ".png", // Icon的图像
+      // imageOffset: new AMap.Pixel(0, -60), // 图像相对展示区域的偏移量，适于雪碧图等
+      // imageSize: new AMap.Size(40, 50), // 根据所设置的大小拉伸或压缩图片
+    });
+    // 将 Icon 实例添加到 marker 上:
+    const [lng, lat] = defaultLngLatList[index];
+    const marker = new AMap.Marker({
+      position: new AMap.LngLat(lng, lat),
+      offset: new AMap.Pixel(-10, -10),
+      icon: icon,
+      title: device.name || "摄像机",
+    });
+    marker.on("click", (_ev) => {
+      console.log("marker click:", lng, lat);
+      if (!device.online) {
+        showNotify({ message: "设备不在线,无法点播！", type: "warning" });
+        return;
       }
-      handle = setTimeout(this.getDeviceList, 3000);
-    },
-    setMarker(list: Record<string, any>[]) {
-      const map = this.map;
-      if (!map) return;
-      const addMarker = (device: Record<string, any>, index: number) => {
-        const icon = new AMap.Icon({
-          size: new AMap.Size(40, 50),
-          image:
-            "https://gaoguantong.ruitong369.com/GaoGuanTongServer/gaoguantongHTML/img/direction/gaoguantong/map/camera" +
-            (device.online ? "" : "_error") +
-            ".png", // Icon的图像
-          // imageOffset: new AMap.Pixel(0, -60), // 图像相对展示区域的偏移量，适于雪碧图等
-          // imageSize: new AMap.Size(40, 50), // 根据所设置的大小拉伸或压缩图片
-        });
-        // 将 Icon 实例添加到 marker 上:
-        const [lng, lat] = defaultLngLatList[index];
-        const marker = new AMap.Marker({
-          position: new AMap.LngLat(lng, lat),
-          offset: new AMap.Pixel(-10, -10),
-          icon: icon,
-          title: device.name || "摄像机",
-        });
-        marker.on("click", (_ev) => {
-          console.log("marker click:", lng, lat);
-          if (!device.online) {
-            showNotify({ message: "设备不在线,无法点播！", type: "warning" });
-            return;
-          }
-          this.pickDevice(device.deviceId);
-        });
-        map.add(marker);
-      };
-      map.clearMap();
-      list.forEach((device, index) => {
-        addMarker(device, index);
-      });
-    },
-    pickDevice(deviceId: string) {
-      this.show = true;
-      this.$nextTick(() => {
-        this.device = { deviceId };
-      });
-    },
-    playerClose() {
-      this.playerInstance?.destroyPlayer?.();
-      return true;
-    },
-  },
+      pickDevice(device.deviceId);
+    });
+    map.add(marker);
+  };
+  map.clearMap();
+
+  console.log("new deviceList marker will reDrawer");
+
+  deviceList.value.forEach((device, index) => {
+    addMarker(device, index);
+  });
+};
+
+const pickDevice = (deviceId: string) => {
+  show.value = true;
+  nextTick(() => {
+    device.value = { deviceId };
+  });
+};
+const playerClose = () => {
+  playerInstance.value?.destroyPlayer?.();
+  return true;
+};
+
+onMounted(() => {
+  initMap();
 });
+
+watch(() => deviceList.value, setMarker);
 </script>
 <template>
   <div>

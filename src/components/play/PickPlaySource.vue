@@ -1,8 +1,11 @@
 <script lang="ts" setup>
-import { getDeviceList } from "@/api";
-import { closeToast, showLoadingToast, showNotify } from "vant";
-import { computed, ref, watch } from "vue";
+import { showNotify } from "vant";
+import { computed, ref, toRefs } from "vue";
 import { Device } from ".";
+
+import { useDeviceListStore } from "../../store";
+const deviceListStore = useDeviceListStore();
+const { deviceList } = toRefs(deviceListStore);
 
 const emits = defineEmits<{
   (event: "pickDevice", data: Device): void;
@@ -14,47 +17,6 @@ const handleError = (message: string) =>
   showNotify({ type: "warning", message });
 
 const activeId = ref<string>();
-
-const deviceList = ref<any[]>([]);
-
-let lastController1: null | AbortController = null;
-
-watch(showPicker, (val) => {
-  if (val) {
-    getDeviceListEvent();
-  } else {
-    // 关闭未完成的请求
-    lastController1?.abort();
-    lastController1 = null;
-  }
-});
-
-const getDeviceListEvent = async () => {
-  showLoadingToast({
-    duration: 0,
-    message: "获取中...",
-  });
-  try {
-    const { request, controller } = getDeviceList();
-    lastController1 = controller;
-    const response = await request();
-    if (response.code === 0) {
-      const dataList = response.data.list as Array<any>;
-
-      deviceList.value = dataList.map((item: any) => ({
-        ...item,
-        name: item.name + (Boolean(item.online) ? "" : "[离线]"),
-      }));
-
-      showPicker.value = true;
-    } else {
-      throw Error(response.msg || "DeviceList获取失败");
-    }
-  } catch (e: any) {
-    handleError(e.message || e);
-  }
-  closeToast();
-};
 
 const pickDevice = ({
   deviceId,
@@ -80,9 +42,17 @@ const pickerText = computed(() => {
 });
 
 const pickerType = computed(() => (activeId.value ? "success" : "primary"));
+
+const openPicker = () => {
+  if (deviceList.value.length) {
+    showPicker.value = true;
+  } else {
+    handleError("暂无摄像头数据");
+  }
+};
 </script>
 <template>
-  <van-button :type="pickerType" square block @click="getDeviceListEvent">{{
+  <van-button :type="pickerType" square block @click="openPicker">{{
     pickerText
   }}</van-button>
 

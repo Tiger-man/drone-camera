@@ -7,6 +7,7 @@ export {}
 
 declare module 'vue' {
   export interface GlobalComponents {
+    DeviceInfo: typeof import('./src/components/DeviceInfo/index.vue')['default']
     Handle: typeof import('./src/components/play/handle/index.vue')['default']
     HandleBtn: typeof import('./src/components/play/handle/HandleBtn.vue')['default']
     MapView: typeof import('./src/components/MapView/index.vue')['default']
@@ -19,12 +20,10 @@ declare module 'vue' {
     VanEmpty: typeof import('vant/es')['Empty']
     VanFloatingBubble: typeof import('vant/es')['FloatingBubble']
     VanIcon: typeof import('vant/es')['Icon']
-    VanLoading: typeof import('vant/es')['Loading']
     VanNoticeBar: typeof import('vant/es')['NoticeBar']
     VanPopover: typeof import('vant/es')['Popover']
-    VanPopup: typeof import('vant/es')['Popup']
     VanSlider: typeof import('vant/es')['Slider']
     VanSpace: typeof import('vant/es')['Space']
-    VanTreeSelect: typeof import('vant/es')['TreeSelect']
+    VanTag: typeof import('vant/es')['Tag']
   }
 }
