@@ -47,14 +47,14 @@ export function getDeviceList() {
   })
 }
 
-export function getChannelList(parentId: string) {
+export function getChannelList(deviceId: string) {
   return HttpUtils({
-    url: '/api/device/query/tree/44010200492000000001',
+    url: '/api/device/query/tree/' + deviceId,
     method: 'get',
     params: {
       page: 1,
       count: 1000,
-      parentId,
+      parentId: deviceId,
       onlyCatalog: false
     }
   })

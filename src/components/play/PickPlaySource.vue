@@ -1,6 +1,6 @@
 <script lang="ts" setup>
-import { getDeviceList, getChannelList } from "@/api";
-import { showNotify } from "vant";
+import { getDeviceList } from "@/api";
+import { closeToast, showLoadingToast, showNotify } from "vant";
 import { computed, ref, watch } from "vue";
 import { Device } from ".";
 
@@ -10,37 +10,30 @@ const emits = defineEmits<{
 
 const showPicker = ref<boolean>(false);
 
-const openPopup = () => {
-  showPicker.value = true;
-};
-
 const handleError = (message: string) =>
   showNotify({ type: "warning", message });
 
 const activeId = ref<string>();
-const activeIndex = ref<number>(0);
 
 const deviceList = ref<any[]>([]);
-const deviceLoading = ref<boolean>(false);
 
 let lastController1: null | AbortController = null;
-let lastController2: null | AbortController = null;
 
 watch(showPicker, (val) => {
   if (val) {
-    setDeviceList();
+    getDeviceListEvent();
   } else {
     // 关闭未完成的请求
     lastController1?.abort();
     lastController1 = null;
-    lastController2?.abort();
-    lastController2 = null;
   }
 });
 
-const setDeviceList = async () => {
-  deviceList.value = [];
-  deviceLoading.value = true;
+const getDeviceListEvent = async () => {
+  showLoadingToast({
+    duration: 0,
+    message: "获取中...",
+  });
   try {
     const { request, controller } = getDeviceList();
     lastController1 = controller;
@@ -50,81 +43,37 @@ const setDeviceList = async () => {
 
       deviceList.value = dataList.map((item: any) => ({
         ...item,
-        text: item.name,
-        id: item.deviceId,
-        className: item.online ? "online" : "offline",
+        name: item.name + (Boolean(item.online) ? "" : "[离线]"),
       }));
 
-      const defaultDevice = dataList[0];
-      if (defaultDevice) {
-        setChannelList(defaultDevice.deviceId);
-      }
+      showPicker.value = true;
     } else {
       throw Error(response.msg || "DeviceList获取失败");
     }
   } catch (e: any) {
     handleError(e.message || e);
-    showPicker.value = false;
   }
-
-  deviceLoading.value = false;
+  closeToast();
 };
 
-watch(activeIndex, (index) => {
-  const { deviceId } = deviceList.value[index];
-  setChannelList(deviceId);
-});
-
-const setChannelList = async (deviceId: string) => {
-  try {
-    const { request, controller } = getChannelList(deviceId);
-    lastController2 = controller;
-    const response = await request();
-    if (response.code === 0) {
-      const dataList = response.data.list as Array<any>;
-      const index = deviceList.value.findIndex(
-        (row) => row.deviceId === deviceId
-      );
-      if (index > -1) {
-        deviceList.value[index]["children"] = dataList.map((item: any) => ({
-          ...item,
-          text: `${item.name}[播放该源]`,
-          id: item.id,
-        }));
-      }
-    } else {
-      throw Error(response.msg || "Channel获取失败");
-    }
-  } catch (e: any) {
-    handleError(e.message || e);
-  }
-};
-
-const pickDeviceChannel = ({
+const pickDevice = ({
   deviceId,
-  id: channelId,
+  online,
 }: {
   deviceId: string;
-  id: string;
+  online: boolean;
 }) => {
-  const deviceStatus = deviceList.value.find(
-    (device) => device.deviceId === deviceId
-  )?.["online"];
-
-  if (!deviceStatus) {
-    activeId.value = "";
+  if (!Boolean(online)) {
     handleError("摄像头离线,请检查网络！");
     return;
   }
-
+  activeId.value = deviceId;
   showPicker.value = false;
-
-  emits("pickDevice", { deviceId, channelId });
+  emits("pickDevice", { deviceId });
 };
 
 const pickerText = computed(() => {
   const isSelect = Boolean(activeId.value);
-
   return `${isSelect ? "切换" : "选择"}摄像头${
     isSelect ? "【" + activeId.value + "】" : ""
   }`;
@@ -133,38 +82,18 @@ const pickerText = computed(() => {
 const pickerType = computed(() => (activeId.value ? "success" : "primary"));
 </script>
 <template>
-  <van-button :type="pickerType" square block @click="openPopup">{{
+  <van-button :type="pickerType" square block @click="getDeviceListEvent">{{
     pickerText
   }}</van-button>
 
-  <van-popup
+  <van-action-sheet
     v-model:show="showPicker"
-    position="bottom"
-    :style="{ width: '100%', height: '50%' }"
-    :closeable="false"
-  >
-    <template v-if="deviceLoading">
-      <div class="center-box">
-        <van-loading color="#1989fa" vertical>查询设备列表中...</van-loading>
-      </div>
-    </template>
-    <template v-else>
-      <template v-if="deviceList.length">
-        <van-tree-select
-          style="height: 50vh"
-          v-model:active-id="activeId"
-          v-model:main-active-index="activeIndex"
-          :items="deviceList"
-          @click-item="pickDeviceChannel"
-        />
-      </template>
-      <template v-else>
-        <div class="center-box">
-          <van-empty description="暂无设备信息!" />
-        </div>
-      </template>
-    </template>
-  </van-popup>
+    close-on-click-action
+    cancel-text="取消"
+    description="选择摄像头"
+    :actions="deviceList"
+    @select="pickDevice"
+  />
 </template>
 
 <style lang="scss">

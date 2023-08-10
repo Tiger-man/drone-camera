@@ -11,7 +11,7 @@ import { Device } from "../index";
 
 import { ControlMenu } from ".";
 
-const channelOk = inject<Ref<boolean>>("channelOk");
+const channelId = inject<Ref<string>>("channelId");
 
 const props = defineProps<{ device: Device }>();
 
@@ -21,13 +21,13 @@ const handleError = (message: string, option: NotifyOptions = {}) =>
   showNotify({ type: "warning", message, ...option });
 
 const ptzCamera = async (command: string) => {
-  const { deviceId, channelId } = props.device;
-  if (!deviceId || !channelId) {
-    handleError("请选择摄像头", { duration: 800 });
+  const { deviceId } = props.device;
+  if (!deviceId) {
+    handleError("请选择摄像头");
     return;
   }
 
-  if (!channelOk?.value) {
+  if (!channelId) {
     handleError("无法移动,摄像机通道未连通！");
     return;
   }
@@ -41,7 +41,7 @@ const ptzCamera = async (command: string) => {
   try {
     const response = await controlCamera({
       deviceId,
-      channelId,
+      channelId: channelId.value,
       command,
       controlSpeed: controlSpeed.value,
     });

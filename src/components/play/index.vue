@@ -2,7 +2,7 @@
   <div v-if="isSupported" class="play-container">
     <PickPlaySource @pick-device="pickDevice" />
     <PlayInstance :device="device" />
-    <CameraHandle :device="device" />
+    <CameraHandle v-if="channelId" :device="device" />
   </div>
   <div v-else>
     <van-empty
@@ -28,31 +28,27 @@ export default defineComponent({
   setup() {
     const device = ref<Device>({
       deviceId: "",
-      channelId: "",
     });
 
-    const pickDevice = ({ deviceId, channelId }: Device) => {
-      channelOk.value = false;
+    const channelId = ref<string>("");
+
+    const pickDevice = ({ deviceId }: Device) => {
+      channelId.value = "";
       device.value = {
         deviceId,
-        channelId,
       };
     };
 
     const isSupported = flvjs.isSupported();
 
-    const channelOk = ref(false);
-    const setChannelOk = () => {
-      channelOk.value = true;
+    const setChannelId = (chanId: string) => {
+      channelId.value = chanId;
     };
-    const setChannelFail = () => {
-      channelOk.value = false;
-    };
-    provide("channelOk", channelOk);
-    provide("setChannelOk", setChannelOk);
-    provide("setChannelFail", setChannelFail);
 
-    return { device, pickDevice, isSupported, channelOk };
+    provide("setChannelId", setChannelId);
+    provide("channelId", channelId);
+
+    return { device, pickDevice, isSupported, setChannelId, channelId };
   },
 });
 </script>

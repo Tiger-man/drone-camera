@@ -1,22 +1,24 @@
 <script lang="ts" setup>
-import { computed, inject, onUnmounted, ref, watch } from "vue";
+import { computed, inject, onMounted, onUnmounted, ref, watch } from "vue";
 import FlvExtend from "flv-extend";
 import type { FlvExtend as FlvExtendTypes } from "flv-extend";
-import { NotifyType, showNotify } from "vant";
+import { closeNotify, NotifyType, showNotify } from "vant";
 
 import flvjs from "mpegts.js";
 
 import { Device } from ".";
 
-import Service, { checkDeviceChannelSyncStatus } from "./service";
+import Service, { checkDeviceSyncStatusRequest } from "./service";
 
-const setChannelOk = inject<() => void>("setChannelOk");
-const setChannelFail = inject<() => void>("setChannelFail");
+const setChannelId = inject<(channelId: string) => void>("setChannelId");
 
 const props = defineProps<{ device: Device }>();
 
-const handleError = (message: string, type: NotifyType = "warning") =>
+const handleError = (message: string, type: NotifyType = "warning") => {
+  if (destroy.value) return;
+
   showNotify({ type, message });
+};
 
 // 播放器宽高比
 const tracks: any = ref([]);
@@ -40,6 +42,10 @@ watch(
   { deep: true }
 );
 
+onMounted(() => {
+  console.log("paly instance modal mounted");
+});
+
 let flv: null | FlvExtend = null;
 let playerInstance: null | FlvExtendTypes.Player = null;
 
@@ -60,37 +66,51 @@ const extendSettings: Partial<FlvExtendTypes.Options> = {
 };
 
 onUnmounted(() => {
-  flv && flv.destroy();
+  destroyPlayer();
 });
+
+const destroy = ref<boolean>(false);
+
+const destroyPlayer = () => {
+  Service.abortFetch();
+  flv && flv.destroy();
+  channelList.value = [];
+  activeChannelId.value = "";
+  destroy.value = true;
+  closeNotify();
+  console.log("销毁播放器实例");
+};
+
+defineExpose({ destroyPlayer });
 
 const videoError = ref<boolean>(false);
 const videoErrorMsg = ref<string>("视频播放失败");
 const loading = ref<boolean>(false);
 
-// 检查设备通道信息
-const checkDeviceStatus = async (deviceId: string, channelId: string) => {
-  // 在检查设备通道中捕获到异常
-  const catchError = (message: string) => {
-    handleVideoError(message);
-  };
+// 在检查视频是否可以播放中捕获到异常
+const catchError = (message: string) => {
+  handleVideoError(message);
+};
 
+// 检查设备通道信息
+const checkDeviceStatus = async (deviceId: string) => {
   try {
     // 查看信道是否是通的
     const { error: synErr, message: syncErrMsg } =
-      await Service.checkDeviceChannel(deviceId, channelId);
+      await Service.checkDeviceSync(deviceId);
 
     if (synErr) {
       throw Error(syncErrMsg);
     }
 
-    // 查看同步状态[checkDeviceChannelSyncStatus 内部存在多次调用]
+    // 查看同步状态[checkDeviceSyncStatusRequest 内部存在多次调用]
     const syncObj = {
       ...Service,
       syncFlag: false,
       handleError: catchError,
     };
     const { error: syncStatusErr, message: syncStatusErrMsg } =
-      await checkDeviceChannelSyncStatus(syncObj, deviceId);
+      await checkDeviceSyncStatusRequest(syncObj, deviceId);
 
     if (syncStatusErr) {
       throw Error(syncStatusErrMsg);
@@ -105,8 +125,17 @@ const checkDeviceStatus = async (deviceId: string, channelId: string) => {
   }
 };
 
-const createPlayer = async () => {
-  setChannelFail?.();
+const channelList = ref<any[]>([]);
+const activeChannelId = ref<string>("");
+
+const createPlayer = async (channelId: string = "") => {
+  if (!channelId) {
+    channelList.value = [];
+    activeChannelId.value = "";
+  }
+
+  destroy.value = false;
+  setChannelId?.("");
 
   videoError.value = false;
   videoErrorMsg.value = "信道检查中...";
@@ -114,14 +143,14 @@ const createPlayer = async () => {
 
   // 清除上次未完成的请求
   Service.abortFetch();
-  const { deviceId, channelId } = props.device;
-  if (!deviceId || !channelId) {
-    handleError("请选择摄像头");
+  const { deviceId } = props.device;
+  if (!deviceId) {
+    catchError("请选择摄像头");
     return;
   }
 
   // 检查是否可以播放
-  const { ready } = await checkDeviceStatus(deviceId, channelId);
+  const { ready } = await checkDeviceStatus(deviceId);
   const readyMsg = ready
     ? "视频通道连接正常,准备播放!"
     : "视频通道连接不通,请稍后重试!";
@@ -129,8 +158,23 @@ const createPlayer = async () => {
   handleError(readyMsg, ready ? "success" : "danger");
 
   if (!ready) return;
+  if (destroy.value) return;
 
-  setChannelOk?.();
+  if (!channelId) {
+    const {
+      error: channelError,
+      channelList: _channelList,
+      message,
+    } = await Service.getChannelList(deviceId);
+
+    if (channelError) {
+      catchError(message);
+      return;
+    }
+
+    channelId = activeChannelId.value = _channelList[0]["id"];
+    channelList.value = _channelList;
+  }
 
   const {
     address,
@@ -144,9 +188,13 @@ const createPlayer = async () => {
     return;
   }
 
+  setChannelId?.(channelId);
+
   if (newTracks) {
     tracks.value = newTracks;
   }
+
+  if (destroy.value) return;
 
   const media = {
     mediaDataSource: {
@@ -198,7 +246,7 @@ const createPlayer = async () => {
     console.log(
       `视频卡顿被触发了【loading:${loading.value}】【error: ${videoError.value}】`
     );
-    handleVideoError("[stuck]加载中...!");
+    handleVideoError("视频卡顿，无法正常播放");
   };
 
   flv.onError = (err) => {
@@ -224,8 +272,11 @@ const createPlayer = async () => {
   });
 };
 
+//
+
 // 视频播放异常
 const handleVideoError = (msg: string = "视频播放失败!") => {
+  if (destroy.value) return;
   loading.value = false;
   videoErrorMsg.value = msg;
   videoError.value = true;
@@ -233,6 +284,19 @@ const handleVideoError = (msg: string = "视频播放失败!") => {
 
 const reload = () => window.location.reload();
 const reCreatePlayer = () => createPlayer();
+
+const selectChannel = (event: { id: string }) => {
+  console.log("event:", event);
+  const channelId = event.id;
+  activeChannelId.value = channelId;
+  createPlayer(channelId);
+};
+
+const activeChannelName = computed(
+  () =>
+    channelList.value.find((row) => row.id === activeChannelId.value)?.name ||
+    "切换通道"
+);
 </script>
 <template>
   <div class="play-box" :style="{ aspectRatio }">
@@ -253,6 +317,26 @@ const reCreatePlayer = () => createPlayer();
       </template>
     </div>
     <div class="video-instance">
+      <div v-if="channelList.length" class="channel">
+        <van-popover
+          v-if="channelList.length > 1"
+          :actions="channelList"
+          @select="selectChannel"
+          :show-arrow="false"
+          overlay
+          theme="dark"
+          placement="bottom-end"
+        >
+          <template #reference>
+            <span style="font-size: 12px; opacity: 0.8">{{
+              activeChannelName
+            }}</span>
+          </template>
+        </van-popover>
+        <span v-else style="font-size: 12px; opacity: 0.8">{{
+          activeChannelName
+        }}</span>
+      </div>
       <video
         id="video"
         autoplay
@@ -325,6 +409,13 @@ video::-webkit-media-controls-timeline {
       position: absolute;
       z-index: 1;
       object-fit: contain;
+    }
+    .channel {
+      position: absolute;
+      right: 10px;
+      top: 10px;
+      z-index: 2;
+      color: var(--van-button-primary-color);
     }
   }
 }

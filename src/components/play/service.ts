@@ -1,6 +1,6 @@
-import { checkDeviceSync, checkDeviceSyncStatus, startChannel } from "@/api";
+import { checkDeviceSync, checkDeviceSyncStatus, getChannelList, startChannel } from "@/api";
 
-type methods = 'checkDeviceChannel' | 'getVideoSource' | 'abortFetch'
+type methods = 'checkDeviceSync' | 'getVideoSource' | 'abortFetch' | 'getChannelList'
 
 type Service = {
   [key in methods]: any;
@@ -21,7 +21,7 @@ const Service: Service = {
     this.controller.forEach(controller => controller.abort())
     this.controller = []
   },
-  checkDeviceChannel: async function (deviceId: string, _channelId: string) {
+  checkDeviceSync: async function (deviceId: string) {
     try {
       const { controller, request } = checkDeviceSync(deviceId);
       // 记录请求控制器
@@ -56,10 +56,28 @@ const Service: Service = {
       // 获取点播地址异常
       return { error: true, message: e.message || e };
     }
+  },
+  getChannelList: async function (deviceId: string) {
+    try {
+      const { request, controller } = getChannelList(deviceId);
+      // 记录请求控制器
+      this.controller.push(controller);
+
+      const response = await request();
+      if (response.code === 0) {
+        const channelList = response.data.list as any[]
+        if (channelList.length) {
+          return { error: false, channelList: channelList.map(row => ({ ...row, text: row.name })) }
+        }
+      }
+      throw Error(response.msg || "视频流通道获取失败！");
+    } catch (e: any) {
+      return { error: true, message: e.message || e };
+    }
   }
 }
 
-const checkDeviceChannelSyncStatus = async function (syncObj: SyncService, deviceId: string): Promise<any> {
+const checkDeviceSyncStatusRequest = async function (syncObj: SyncService, deviceId: string): Promise<any> {
   try {
     const { controller, request } = checkDeviceSyncStatus(deviceId);
     // 记录请求控制器
@@ -81,7 +99,7 @@ const checkDeviceChannelSyncStatus = async function (syncObj: SyncService, devic
             syncObj.handleError(`同步中...[${current}/${total}]`)
           }
           await delay(1500)
-          return checkDeviceChannelSyncStatus(syncObj, deviceId)
+          return checkDeviceSyncStatusRequest(syncObj, deviceId)
         } else {
           const errorMsg = response.data.errorMsg
           if (errorMsg) {
@@ -111,4 +129,4 @@ const checkDeviceChannelSyncStatus = async function (syncObj: SyncService, devic
 }
 
 export default Service
-export { checkDeviceChannelSyncStatus }
+export { checkDeviceSyncStatusRequest }
