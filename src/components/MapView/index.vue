@@ -4,7 +4,15 @@ import PlayInstance from "../play/PlayInstance.vue";
 import * as AMapLoader from "@amap/amap-jsapi-loader";
 import { shallowRef } from "@vue/reactivity";
 import { showNotify } from "vant";
-import { nextTick, onMounted, provide, ref, toRefs, watch } from "vue";
+import {
+  nextTick,
+  onMounted,
+  onUnmounted,
+  provide,
+  ref,
+  toRefs,
+  watch,
+} from "vue";
 
 const defaultLngLatList = [
   [119.45755, 25.173419],
@@ -125,6 +133,11 @@ const playerClose = () => {
 
 onMounted(() => {
   initMap();
+});
+
+onUnmounted(() => {
+  console.log("卸载地图");
+  mapInstance.value?.destroy();
 });
 
 watch(() => deviceList.value, setMarker);

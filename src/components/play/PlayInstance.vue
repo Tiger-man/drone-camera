@@ -10,6 +10,8 @@ import { Device } from ".";
 
 import Service, { checkDeviceSyncStatusRequest } from "./service";
 
+const isSupported = flvjs.isSupported();
+
 const setChannelId = inject<(channelId: string) => void>("setChannelId");
 
 const props = defineProps<{ device: Device }>();
@@ -129,6 +131,11 @@ const channelList = ref<any[]>([]);
 const activeChannelId = ref<string>("");
 
 const createPlayer = async (channelId: string = "") => {
+  if (!isSupported) {
+    catchError("您的设备不支持Flv.js");
+    return;
+  }
+
   if (!channelId) {
     channelList.value = [];
     activeChannelId.value = "";
@@ -145,7 +152,7 @@ const createPlayer = async (channelId: string = "") => {
   Service.abortFetch();
   const { deviceId } = props.device;
   if (!deviceId) {
-    catchError("请选择摄像头");
+    handleVideoError("请选择摄像头");
     return;
   }
 
@@ -272,11 +279,8 @@ const createPlayer = async (channelId: string = "") => {
   });
 };
 
-//
-
 // 视频播放异常
 const handleVideoError = (msg: string = "视频播放失败!") => {
-  if (destroy.value) return;
   loading.value = false;
   videoErrorMsg.value = msg;
   videoError.value = true;
