@@ -7,7 +7,6 @@ type setPlayAddressData = {
 
 type Device = {
   deviceId: string;
-  channelId: string;
 }
 
 export { setPlayAddressData, Device }

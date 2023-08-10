@@ -9,8 +9,11 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@amap/amap-jsapi-loader": "^1.0.1",
+    "@amap/amap-jsapi-types": "^0.0.13",
     "flv-extend": "^0.3.0",
     "flv.js": "^1.6.2",
+    "pinia": "^2.1.6",
     "vant": "^4.6.2",
     "vue": "^3.3.4"
   },
