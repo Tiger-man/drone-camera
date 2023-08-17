@@ -47,8 +47,8 @@ const Service: Service = {
 
       const response = await request();
       if (response.code === 0) {
-        const { flv: address, tracks } = response.data;
-        return { error: false, address, tracks };
+        const { flv, hls, tracks } = response.data;
+        return { error: false, address: { flv, hls }, tracks };
       } else {
         throw Error(response.msg || "流地址获取失败");
       }
@@ -93,7 +93,7 @@ const checkDeviceSyncStatusRequest = async function (syncObj: SyncService, devic
       if (response.data != null) {
         if (response.data.syncIng) {
           if (response.data.total == 0) {
-            syncObj.handleError("检查视频通道中...")
+            syncObj.handleError("信道检查中...")
           } else {
             const { total, current } = response.data;
             syncObj.handleError(`同步中...[${current}/${total}]`)
@@ -107,7 +107,7 @@ const checkDeviceSyncStatusRequest = async function (syncObj: SyncService, devic
             throw Error(errorMsg)
           } else {
             // 成功
-            syncObj.handleError('视频通道正常,准备播放')
+            syncObj.handleError('通道正常,准备播放')
             return { error: false }
           }
         }
@@ -115,7 +115,7 @@ const checkDeviceSyncStatusRequest = async function (syncObj: SyncService, devic
     } else {
       if (syncObj.syncFlag) {
         // 成功
-        syncObj.handleError('视频通道正常,准备播放')
+        syncObj.handleError('通道正常,准备播放')
         return { error: false }
       } else {
         syncObj.handleError(response.msg)

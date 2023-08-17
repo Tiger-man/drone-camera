@@ -1,4 +1,4 @@
-import { createApp } from 'vue'
+import { createApp, } from 'vue'
 
 import 'vant/es/toast/style';
 import 'vant/es/dialog/style';
