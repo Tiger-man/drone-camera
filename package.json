@@ -23,6 +23,7 @@
     "@types/node": "^20.4.2",
     "@vitejs/plugin-vue": "^4.2.3",
     "sass": "^1.63.6",
+    "terser": "^5.19.2",
     "typescript": "^5.0.2",
     "unplugin-vue-components": "^0.25.1",
     "vite": "^4.4.0",

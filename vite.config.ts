@@ -8,10 +8,19 @@ const pathSrc = path.resolve(__dirname, 'src')
 
 // https://vitejs.dev/config/
 export default defineConfig({
-  base: '/drone-camera',
+  // base: '/drone-camera',
+  base: '/',
   resolve: {
     alias: {
       '@/': `${pathSrc}/`,
+    }
+  },
+  build: {
+    minify: 'terser',
+    terserOptions: {
+      compress: {
+        drop_console: true
+      }
     }
   },
   plugins: [
