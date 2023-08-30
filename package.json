@@ -11,8 +11,10 @@
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
     "@amap/amap-jsapi-types": "^0.0.13",
+    "dplayer": "^1.25.1",
     "flv-extend": "^0.3.0",
     "flv.js": "^1.6.2",
+    "hls.js": "^1.4.0-beta.2",
     "pinia": "^2.1.6",
     "vant": "^4.6.2",
     "vue": "^3.3.4"
@@ -21,6 +23,7 @@
     "@types/node": "^20.4.2",
     "@vitejs/plugin-vue": "^4.2.3",
     "sass": "^1.63.6",
+    "terser": "^5.19.2",
     "typescript": "^5.0.2",
     "unplugin-vue-components": "^0.25.1",
     "vite": "^4.4.0",

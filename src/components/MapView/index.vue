@@ -1,4 +1,5 @@
 <script lang="ts" setup>
+import "@amap/amap-jsapi-types";
 import { Device } from "../play";
 import PlayInstance from "../play/PlayInstance.vue";
 import * as AMapLoader from "@amap/amap-jsapi-loader";
@@ -14,17 +15,19 @@ import {
   watch,
 } from "vue";
 
+const centerLngLatList: [number, number] = [112.115037, 21.666972];
+
 const defaultLngLatList = [
-  [119.45755, 25.173419],
-  [119.497536, 25.139893],
-  [119.549308, 25.126937],
-  [119.437346, 25.192084],
-  [119.437346, 25.250724],
-  [119.509742, 25.246917],
-  [119.530367, 25.226738],
-  [119.565723, 25.18218],
-  [119.572037, 25.144846],
-  [119.496399, 25.165308],
+  [112.110247, 21.660825],
+  [112.087895, 21.611638],
+  [112.140354, 21.571767],
+  [112.178216, 21.623936],
+  [112.15039, 21.54419],
+  [112.172286, 21.567524],
+  [112.221552, 21.608669],
+  [112.05277, 21.610365],
+  [112.206955, 21.618847],
+  [112.154039, 21.659129],
 ];
 
 import { useDeviceListStore } from "../../store";
@@ -58,8 +61,8 @@ const initMap = async () => {
       viewMode: "3D",
       // pitch: 83,
       // terrain: true,
-      zoom: 11.59,
-      center: [119.503492, 25.200333], //初始化地图中心点位置
+      zoom: 11.9,
+      center: centerLngLatList, //初始化地图中心点位置
     };
     mapInstance.value = new AMap.Map("map-container", mapOption);
     mapListener();
@@ -85,13 +88,13 @@ const setMarker = () => {
   if (!map) return;
   const addMarker = (device: Record<string, any>, index: number) => {
     const icon = new AMap.Icon({
-      size: new AMap.Size(40, 50),
+      size: new AMap.Size(60, 60),
       image:
         "https://gaoguantong.ruitong369.com/GaoGuanTongServer/gaoguantongHTML/img/direction/gaoguantong/map/camera" +
         (device.online ? "" : "_error") +
         ".png", // Icon的图像
       // imageOffset: new AMap.Pixel(0, -60), // 图像相对展示区域的偏移量，适于雪碧图等
-      // imageSize: new AMap.Size(40, 50), // 根据所设置的大小拉伸或压缩图片
+      imageSize: new AMap.Size(60, 60), // 根据所设置的大小拉伸或压缩图片
     });
     // 将 Icon 实例添加到 marker 上:
     const [lng, lat] = defaultLngLatList[index];
@@ -101,7 +104,7 @@ const setMarker = () => {
       icon: icon,
       title: device.name || "摄像机",
     });
-    marker.on("click", (_ev) => {
+    marker.on("click", (_ev: any) => {
       console.log("marker click:", lng, lat);
       if (!device.online) {
         showNotify({ message: "设备不在线,无法点播！", type: "warning" });
@@ -126,7 +129,7 @@ const pickDevice = (deviceId: string) => {
     device.value = { deviceId };
   });
 };
-const playerClose = () => {
+const destroyPlayer = () => {
   playerInstance.value?.destroyPlayer?.();
   return true;
 };
@@ -148,19 +151,23 @@ watch(() => deviceList.value, setMarker);
 
     <van-dialog
       v-model:show="show"
-      style="width: 100%; max-width: 1000px; border-radius: none"
+      style="width: 96%; max-width: 1000px; border-radius: none"
       :show-confirm-button="false"
       :closeOnClickOverlay="true"
-      :beforeClose="playerClose"
+      @closed="destroyPlayer"
+      title="实时视频"
     >
       <PlayInstance ref="playerInstance" :device="device" />
     </van-dialog>
   </div>
 </template>
 
-<style>
+<style lang="scss">
 .van-dialog {
-  border-radius: unset;
+  border-radius: 10px;
+  .van-dialog__header {
+    padding: 8px 0 4px;
+  }
 }
 </style>
 
