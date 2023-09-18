@@ -26,7 +26,7 @@ const pickDevice = ({
   online: boolean;
 }) => {
   if (!Boolean(online)) {
-    handleError("摄像头离线,请检查网络！");
+    handleError("设备不在线,无法点播！");
     return;
   }
   activeId.value = deviceId;
