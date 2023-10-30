@@ -20,14 +20,16 @@ export default defineComponent({
   setup() {
     const device = ref<Device>({
       deviceId: "",
+      name: "",
     });
 
     const channelId = ref<string>("");
 
-    const pickDevice = ({ deviceId }: Device) => {
+    const pickDevice = ({ deviceId, name }: Device) => {
       channelId.value = "";
       device.value = {
         deviceId,
+        name,
       };
     };
 

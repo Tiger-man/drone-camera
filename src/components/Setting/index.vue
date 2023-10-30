@@ -3,6 +3,9 @@ import { computed, inject, Ref, ref } from "vue";
 
 import flvjs from "mpegts.js";
 
+import devicePortMap from "../../config";
+import { showNotify } from "vant";
+
 const isSupportedFlv = flvjs.isSupported();
 
 const channelList = inject<Ref<any[]>>("channelList");
@@ -46,7 +49,22 @@ const onSelect = (item: Record<string, any>) => {
     emits("togglePlayer");
     return;
   }
-  window.open("http://39.106.4.50:14081/doc/page/config.asp", "_blank");
+  // 打开后台设置
+  openAdmin();
+};
+
+const openAdmin = () => {
+  const deviceId = channelList?.value[0].deviceId;
+  if (deviceId) {
+    const port = devicePortMap[deviceId];
+    if (port) {
+      window.open(`http://39.106.4.50:${port}/doc/page/config.asp`, "_blank");
+    } else {
+      showNotify({ type: "warning", message: `未配置${deviceId}对应的端口！` });
+    }
+  } else {
+    showNotify({ type: "warning", message: "未发现deviceId！" });
+  }
 };
 
 const openSetting = () => {

@@ -21,8 +21,10 @@ const activeId = ref<string>();
 const pickDevice = ({
   deviceId,
   online,
+  name,
 }: {
   deviceId: string;
+  name: string;
   online: boolean;
 }) => {
   if (!Boolean(online)) {
@@ -31,7 +33,7 @@ const pickDevice = ({
   }
   activeId.value = deviceId;
   showPicker.value = false;
-  emits("pickDevice", { deviceId });
+  emits("pickDevice", { deviceId, name });
 };
 
 const pickerText = computed(() => {

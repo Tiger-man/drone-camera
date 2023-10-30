@@ -35,7 +35,7 @@ import { useDeviceListStore } from "../../store";
 const mapInstance = shallowRef<AMap.Map | null>(null);
 
 const playerInstance = ref<typeof PlayInstance | null>(null);
-const device = ref<Device>({ deviceId: "" });
+const device = ref<Device>({ deviceId: "", name: "" });
 const show = ref<boolean>(false);
 
 const channelId = ref<string>("");
@@ -104,29 +104,36 @@ const setMarker = () => {
       icon: icon,
       title: device.name || "摄像机",
     });
+
+    marker.setLabel({
+      offset: new AMap.Pixel(0, -10), //设置文本标注偏移量
+      content: `<div class='marker-name'>${device.name || "摄像机"}</div>`, //设置文本标注内容
+      direction: "bottom", //设置文本标注方位
+    });
+
     marker.on("click", (_ev: any) => {
       console.log("marker click:", lng, lat);
       if (!device.online) {
         showNotify({ message: "设备不在线,无法点播！", type: "warning" });
         return;
       }
-      pickDevice(device.deviceId);
+      pickDevice(device.deviceId, device.name);
     });
     map.add(marker);
   };
   map.clearMap();
 
-  console.log("new deviceList marker will reDrawer");
+  console.log("new deviceList marker will redraws");
 
   deviceList.value.forEach((device, index) => {
     addMarker(device, index);
   });
 };
 
-const pickDevice = (deviceId: string) => {
+const pickDevice = (deviceId: string, name: string) => {
   show.value = true;
   nextTick(() => {
-    device.value = { deviceId };
+    device.value = { deviceId, name };
   });
 };
 const destroyPlayer = () => {
@@ -155,7 +162,7 @@ watch(() => deviceList.value, setMarker);
       :show-confirm-button="false"
       :closeOnClickOverlay="true"
       @closed="destroyPlayer"
-      title="实时视频"
+      :title="'[' + device.name + ']' + '实时影像'"
     >
       <PlayInstance ref="playerInstance" :device="device" />
     </van-dialog>
@@ -167,6 +174,13 @@ watch(() => deviceList.value, setMarker);
   border-radius: 10px;
   .van-dialog__header {
     padding: 8px 0 4px;
+  }
+}
+.amap-marker-label {
+  background-color: transparent;
+  border: none;
+  .marker-name {
+    color: rgba(0, 0, 0, 0.5);
   }
 }
 </style>

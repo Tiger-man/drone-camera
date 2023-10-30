@@ -13,7 +13,8 @@ export const useDeviceListStore = defineStore({
     },
     offlineNum(state): number {
       const onlineNum = useDeviceListStore().onlineNum;
-      return state.deviceList.length - onlineNum;
+      const offlineNum = state.deviceList.length - onlineNum
+      return Math.max(offlineNum, 0);
     },
   },
   actions: {

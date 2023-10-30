@@ -1,8 +1,5 @@
 import { getToken } from '@/api'
-
-const baseUrl = "http://39.106.4.50:18080"
-// const baseUrl = "http://192.168.0.106:18080"
-// const baseUrl = "http://192.168.0.112:18080"
+import { api_service } from "@/config"
 
 const FETCH_TIME_OUT = 3 * 60 * 1000
 // const FETCH_TIME_OUT = 300
@@ -21,7 +18,7 @@ type FetchOption = {
 
 const HttpUtils = (option: FetchOption) => {
   const { url, method, headers, data, params } = option
-  const fetchUrl = new URL(baseUrl + url)
+  const fetchUrl = new URL(api_service + url)
 
   const token = localStorage.getItem('Token')
 

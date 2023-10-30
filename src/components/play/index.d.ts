@@ -7,6 +7,7 @@ type setPlayAddressData = {
 
 type Device = {
   deviceId: string;
+  name: string
 }
 
 export { setPlayAddressData, Device }
